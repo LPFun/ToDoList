@@ -6,7 +6,9 @@ import android.arch.persistence.room.PrimaryKey;
 @Entity(tableName = "todoitems")
 public class ToDoItem {
     @PrimaryKey(autoGenerate = true)
-    public long id;
+    public long id = 0;
+
+    public int position;
 
     public String title;
 
