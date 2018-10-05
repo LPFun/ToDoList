@@ -14,7 +14,7 @@ import io.reactivex.Flowable;
 
 @Dao
 public interface ToDoDao {
-    @Query("SELECT * FROM TODOITEMS ORDER BY position ASC")
+    @Query("SELECT * FROM TODOITEMS ORDER BY position DESC")
     Flowable<List<ToDoItem>> getAll();
 
     @Query("SELECT * FROM todoitems WHERE id = :id")
@@ -32,7 +32,7 @@ public interface ToDoDao {
     @Query("DELETE FROM todoitems")
     void deleteAll();
 
-    @Update/*(onConflict = OnConflictStrategy.REPLACE)*/
+    @Update
     void updateAll(List<ToDoItem> toDoItems);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

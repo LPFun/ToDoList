@@ -98,6 +98,7 @@ public class MainFragment extends Fragment {
                             mToDoItems = new ArrayList<>();
                             if (toDoItems.size() != 0) {
                                 mToDoItems = toDoItems;
+                                Collections.reverse(mToDoItems);
                                 mAdapter.setData(mToDoItems);
                                 Log.i(TAG, "initAdapter: ");
                                 //TODO: add diffutil
@@ -193,14 +194,13 @@ public class MainFragment extends Fragment {
             Log.i(TAG, "onPause: " + item.id + " " + item.position);
         }
         changeDB(() -> toDoDao.updateAll(mAdapter.getData()));
+        dispose();
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (todo_get != null && todo_get.isDisposed()) {
-            todo_get.dispose();
-        }
+        dispose();
     }
 
     private void changeDB(IChangeDB changeDB) {
@@ -215,7 +215,7 @@ public class MainFragment extends Fragment {
 
     private void dispose() {
         if (todo_get != null && !todo_get.isDisposed()) {
-
+            todo_get.dispose();
         }
     }
 
