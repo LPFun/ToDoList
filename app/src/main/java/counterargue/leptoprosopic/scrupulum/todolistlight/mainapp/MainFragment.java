@@ -2,11 +2,11 @@ package counterargue.leptoprosopic.scrupulum.todolistlight.mainapp;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v7.util.DiffUtil;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
@@ -22,9 +22,7 @@ import android.widget.Toast;
 import com.google.gson.Gson;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 import butterknife.BindView;
@@ -37,23 +35,31 @@ import counterargue.leptoprosopic.scrupulum.todolistlight.adapter.ToDoItemDecora
 import counterargue.leptoprosopic.scrupulum.todolistlight.database.ToDoDB;
 import counterargue.leptoprosopic.scrupulum.todolistlight.database.dao.ToDoDao;
 import counterargue.leptoprosopic.scrupulum.todolistlight.database.entyties.ToDoItem;
+import counterargue.leptoprosopic.scrupulum.todolistlight.utils.ToDoDiffUtilCallback;
 import io.reactivex.Completable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 
+/**
+ * Main fragment shows list of todoitems.
+ *
+ * @author Aleks Dark
+ * @version 1.0
+ */
 public class MainFragment extends Fragment {
 
     private static final String TAG = "MainFragment";
+    /**
+     * Adapter for recyclerview
+     */
     private ToDoAdapter mAdapter;
     private final static int REQUEST_CODE = 0;
     private final static int CHANGE_CODE = 1;
     private final String DIALOG_ADD = "DIALOG_ADD";
     private final String DIALOG_CHANGE = "DIALOG_CHANGE";
     private int position;
-    private SharedPreferences mPreferences;
-    private String TODOS_COUNT = "TODOS_COUNT";
-    private static Disposable todo_get, mOnItemClick, mOnItemDelete, mOnItemInsert, mOnItemUpdate;
+    private static Disposable mToDoDbDisposable, mOnItemClick, mOnItemUpdate, mUpdateDB;
     private ToDoDao toDoDao;
     private List<ToDoItem> mToDoItems;
 
@@ -63,6 +69,7 @@ public class MainFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+//        getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         initDB();
         initAdapter();
     }
@@ -79,6 +86,9 @@ public class MainFragment extends Fragment {
         return view;
     }
 
+    /**
+     * Method that initializing recyclerview
+     */
     private void initRecycler() {
         mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new ItemTouchHelperCallback(mAdapter));
@@ -87,21 +97,30 @@ public class MainFragment extends Fragment {
         itemTouchHelper.attachToRecyclerView(mRecyclerView);
     }
 
+    /**
+     * Method that initializing adapter
+     */
     private void initAdapter() {
         mAdapter = new ToDoAdapter(getActivity());
 
         setupRecyclerOnItemClickListener();
 
-        todo_get = toDoDao.getAll()
+        mToDoDbDisposable = toDoDao.getAll()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(toDoItems -> {
                             mToDoItems = new ArrayList<>();
                             if (toDoItems.size() != 0) {
                                 mToDoItems = toDoItems;
                                 Collections.reverse(mToDoItems);
+
+                                ToDoDiffUtilCallback toDoDiffUtilCallback = new ToDoDiffUtilCallback(mAdapter.getData(), mToDoItems);
+                                DiffUtil.DiffResult toDoDiffResult = DiffUtil.calculateDiff(toDoDiffUtilCallback);
+
                                 mAdapter.setData(mToDoItems);
+                                toDoDiffResult.dispatchUpdatesTo(mAdapter);
+
                                 Log.i(TAG, "initAdapter: ");
-                                //TODO: add diffutil
+
                             } else {
                                 Toast.makeText(getActivity(), "Add TODO", Toast.LENGTH_SHORT).show();
                             }
@@ -111,11 +130,17 @@ public class MainFragment extends Fragment {
                 );
     }
 
+    /**
+     * Method that initializing DB
+     */
     private void initDB() {
         ToDoDB db = App.getInstance().getDataBase();
         toDoDao = db.mToDoDao();
     }
 
+    /**
+     * Method that handles user's interactions with list of items
+     */
     private void setupRecyclerOnItemClickListener() {
         mOnItemClick = mAdapter
                 .getClickEvent()
@@ -137,6 +162,10 @@ public class MainFragment extends Fragment {
                 });
     }
 
+    /**
+     * Method that handles user's on item click
+     * @param pos - item position in list
+     */
     private void handleOnRecyclerItemClick(int pos) {
         ToDoDialog doDialog = ToDoDialog.newInstance(mToDoItems.get(pos));
         doDialog.setTargetFragment(MainFragment.this, CHANGE_CODE);
@@ -149,6 +178,12 @@ public class MainFragment extends Fragment {
         inflater.inflate(R.menu.menu_items, menu);
     }
 
+    /**
+     * Method that handles callback from FragmentDialog
+     * @param requestCode - determines user's action
+     * @param resultCode - determines result code
+     * @param data - changed data
+     */
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode != Activity.RESULT_OK) {
@@ -190,21 +225,31 @@ public class MainFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        for (ToDoItem item : mAdapter.getData()) {
-            Log.i(TAG, "onPause: " + item.id + " " + item.position);
-        }
-        changeDB(() -> toDoDao.updateAll(mAdapter.getData()));
-        dispose();
+        updateListInDb();
+        dispose(mOnItemClick);
+        dispose(mOnItemUpdate);
+        dispose(mToDoDbDisposable);
+        dispose(mUpdateDB);
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        dispose();
     }
 
+    /**
+     * Method that updates list in DB
+     */
+    private void updateListInDb() {
+        changeDB(() -> toDoDao.updateAll(mAdapter.getData()));
+    }
+
+    /**
+     * Method that sends changes to DB
+     * @param changeDB - functional interface
+     */
     private void changeDB(IChangeDB changeDB) {
-        Completable.fromAction(changeDB::changeDB)
+        mUpdateDB = Completable.fromAction(changeDB::changeDB)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(() -> {
@@ -213,15 +258,19 @@ public class MainFragment extends Fragment {
                 });
     }
 
-    private void dispose() {
-        if (todo_get != null && !todo_get.isDisposed()) {
-            todo_get.dispose();
+    /**
+     * Method that dispose all disposables
+     */
+    private void dispose(Disposable disposable) {
+        if (disposable != null && !disposable.isDisposed()) {
+            disposable.dispose();
         }
     }
 
+    /**
+     * Functional interface
+     */
     public interface IChangeDB {
         void changeDB();
     }
-
-
 }

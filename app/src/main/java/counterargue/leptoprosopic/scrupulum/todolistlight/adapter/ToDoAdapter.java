@@ -159,6 +159,7 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
         }
 
         void bind(ToDoItem item) {
+            Log.i(TAG, "bind: " + item.position);
             item_txt.setText(item.title);
         }
     }

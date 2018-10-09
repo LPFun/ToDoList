@@ -2,7 +2,6 @@ package counterargue.leptoprosopic.scrupulum.todolistlight;
 
 import android.app.Application;
 import android.arch.persistence.room.Room;
-
 import counterargue.leptoprosopic.scrupulum.todolistlight.database.ToDoDB;
 
 public class App extends Application {
