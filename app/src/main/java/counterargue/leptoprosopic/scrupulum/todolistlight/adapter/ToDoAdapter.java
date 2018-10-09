@@ -4,32 +4,35 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import android.widget.Toast;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import counterargue.leptoprosopic.scrupulum.todolistlight.R;
+import counterargue.leptoprosopic.scrupulum.todolistlight.database.entyties.ToDoItem;
+import io.reactivex.Observable;
+import io.reactivex.subjects.PublishSubject;
 
 public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements IAdapter {
 
     private Context mContext;
-    private List<String> mListData;
-    private OnListItemClick mOnListItemClick;
-    private String mRecentlyDeletedItem;
+    private List<ToDoItem> mListData;
+    private ToDoItem mRecentlyDeletedItem;
     private int mRecentlyDeletedItemPosition;
     private View view;
+    private PublishSubject<Integer> mClickSubject = PublishSubject.create();
+    private PublishSubject<SparseArray<ToDoItem>> mUpdateSubject = PublishSubject.create();
+    private String TAG = this.getClass().getSimpleName().toString();
 
-    public ToDoAdapter(Context context, OnListItemClick onListItemClick) {
+    public ToDoAdapter(Context context) {
         mContext = context;
-        mOnListItemClick = onListItemClick;
         mListData = new ArrayList<>();
     }
 
@@ -43,7 +46,7 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
         view.setOnClickListener(view -> {
             int adapterPos = viewHolder.getAdapterPosition();
             if (adapterPos != RecyclerView.NO_POSITION)
-                mOnListItemClick.OnItemClick(viewHolder.getAdapterPosition(), ((ToDoViewHolder) viewHolder).item_txt.getText().toString());
+                mClickSubject.onNext(viewHolder.getAdapterPosition());
         });
         return viewHolder;
     }
@@ -61,6 +64,9 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
     @Override
     public void onItemDismiss(int pos) {
         mRecentlyDeletedItem = mListData.get(pos);
+        SparseArray sparseArray = new SparseArray();
+        sparseArray.put(3, mListData.get(pos));
+        mUpdateSubject.onNext(sparseArray);
         mRecentlyDeletedItemPosition = pos;
         mListData.remove(pos);
         notifyItemRemoved(pos);
@@ -75,7 +81,18 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
 
     private void undoDelete() {
         mListData.add(mRecentlyDeletedItemPosition, mRecentlyDeletedItem);
+        SparseArray sparseArray = new SparseArray();
+        sparseArray.put(2, mRecentlyDeletedItem);
+        mUpdateSubject.onNext(sparseArray);
         notifyItemInserted(mRecentlyDeletedItemPosition);
+    }
+
+    public Observable<Integer> getClickEvent(){
+        return mClickSubject;
+    }
+
+    public Observable<SparseArray<ToDoItem>> getUpdateEvent(){
+        return mUpdateSubject;
     }
 
     @Override
@@ -89,13 +106,27 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
                 Collections.swap(mListData, i, i - 1);
             }
         }
+        Log.i(TAG, "onItemMove: from " + fromPosition + " to " + toPosition);
+        mListData.get(toPosition).position = toPosition;
         notifyItemMoved(fromPosition, toPosition);
         return true;
     }
 
-    public void addItem(String item) {
+    public void addItem(ToDoItem item) {
         mListData.add(0, item);
+        SparseArray sparseArray = new SparseArray();
+        sparseArray.put(2, item);
+        mUpdateSubject.onNext(sparseArray);
         notifyItemInserted(0);
+    }
+
+    public void changeItem(int position, ToDoItem item) {
+        mListData.remove(position);
+        mListData.add(position, item);
+        SparseArray mapItem = new SparseArray();
+        mapItem.put(1, item);
+        mUpdateSubject.onNext(mapItem);
+        notifyItemChanged(position);
     }
 
     @Override
@@ -103,22 +134,22 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
         return mContext;
     }
 
-    public void setData(List<String> data) {
+    public void setData(List<ToDoItem> data) {
         mListData = data;
     }
 
-    public void changeItem(int position, String msg) {
-        mListData.remove(position);
-        mListData.add(position, msg);
-        notifyItemChanged(position);
-    }
-
-    public List<String> getData() {
-        return mListData;
+    public List<ToDoItem> getData() {
+        List<ToDoItem> items = new ArrayList<>();
+        for (int i = 0; i < mListData.size(); i++){
+            ToDoItem item = mListData.get(i);
+            item.position = i;
+            items.add(item);
+//            Log.i(TAG, "getData: " + item.position);
+        }
+        return items;
     }
 
     class ToDoViewHolder extends RecyclerView.ViewHolder {
-
         @BindView(R.id.item_txt)
         TextView item_txt;
 
@@ -127,8 +158,11 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
             ButterKnife.bind(this, itemView);
         }
 
-        void bind(String item) {
-            item_txt.setText(item);
+        void bind(ToDoItem item) {
+            Log.i(TAG, "bind: " + item.position);
+            item_txt.setText(item.title);
         }
     }
+
+
 }

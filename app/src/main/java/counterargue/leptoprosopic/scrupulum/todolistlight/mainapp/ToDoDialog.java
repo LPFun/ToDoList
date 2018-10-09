@@ -13,24 +13,30 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
 
+import com.google.gson.Gson;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import counterargue.leptoprosopic.scrupulum.todolistlight.R;
+import counterargue.leptoprosopic.scrupulum.todolistlight.database.entyties.ToDoItem;
 
 public class ToDoDialog extends DialogFragment {
 
     public static final String MSG_EXTRA = "MSG_EXTRA";
     private static final String POS = "POS";
     private static final String MSG = "MSG";
-    private String msg;
+    private ToDoItem mToDoItem = new ToDoItem();
     private int pos;
+    private Gson mGson;
 
     @BindView(R.id.dialog_edittxt)
     EditText mEditText;
 
-    public static ToDoDialog newInstance(String msg) {
+    public static ToDoDialog newInstance(ToDoItem item) {
+        Gson gson = new Gson();
+        String str_item = gson.toJson(item);
         Bundle args = new Bundle();
-        args.putString(MSG, msg);
+        args.putString(MSG, str_item);
         ToDoDialog fragment = new ToDoDialog();
         fragment.setArguments(args);
         return fragment;
@@ -41,7 +47,9 @@ public class ToDoDialog extends DialogFragment {
         super.onCreate(savedInstanceState);
         Bundle bundle = getArguments();
         if (bundle != null) {
-            msg = bundle.getString(MSG);
+            mGson = new Gson();
+            String str = bundle.getString(MSG);
+            mToDoItem = mGson.fromJson(str, ToDoItem.class);
         }
     }
 
@@ -52,7 +60,11 @@ public class ToDoDialog extends DialogFragment {
         View view = layoutInflater.inflate(R.layout.dialog_lay, null, false);
         ButterKnife.bind(this, view);
 
-        mEditText.setText(msg);
+        if (mToDoItem.title != null){
+            mEditText.setText(mToDoItem.title);
+        }
+
+
 
         return new AlertDialog.Builder(getActivity())
                 .setTitle("ToDo")
@@ -61,15 +73,9 @@ public class ToDoDialog extends DialogFragment {
                 .setNegativeButton(android.R.string.cancel, onCancelClickListener)
                 .setCancelable(false)
                 .create();
-
     }
 
-    private DialogInterface.OnClickListener onOkClickListener = new DialogInterface.OnClickListener() {
-        @Override
-        public void onClick(DialogInterface dialogInterface, int i) {
-            onOkClick();
-        }
-    };
+    private DialogInterface.OnClickListener onOkClickListener = (dialogInterface, i) -> onOkClick();
 
     private void onOkClick() {
         sendResult(Activity.RESULT_OK);
@@ -82,23 +88,26 @@ public class ToDoDialog extends DialogFragment {
         }
 
         Intent intent = new Intent();
-        String todo_str = mEditText.getText().toString();
-
-        if (todo_str.length() == 0) {
-            todo_str = "TODO";
+        String todo_title = mEditText.getText().toString();
+        if (todo_title.length() == 0) {
+            todo_title = "TODO";
         }
 
-        intent.putExtra(MSG_EXTRA, todo_str);
+        mGson = new Gson();
+
+        mToDoItem.category = "cat";
+        mToDoItem.description = "desc";
+        mToDoItem.status = "status";
+        mToDoItem.title = todo_title;
+
+        String str_updated_todo = mGson.toJson(mToDoItem);
+
+        intent.putExtra(MSG_EXTRA, str_updated_todo);
 
         getTargetFragment().onActivityResult(getTargetRequestCode(), resultCode, intent);
     }
 
-    private DialogInterface.OnClickListener onCancelClickListener = new DialogInterface.OnClickListener() {
-        @Override
-        public void onClick(DialogInterface dialogInterface, int i) {
-            dismissDialog();
-        }
-    };
+    private DialogInterface.OnClickListener onCancelClickListener = (dialogInterface, i) -> dismissDialog();
 
     private void dismissDialog() {
         this.dismiss();
