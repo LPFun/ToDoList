@@ -2,6 +2,8 @@ package counterargue.leptoprosopic.scrupulum.todolistlight.database.repository;
 
 import java.util.List;
 
+import counterargue.leptoprosopic.scrupulum.todolistlight.App;
+import counterargue.leptoprosopic.scrupulum.todolistlight.database.ToDoDB;
 import counterargue.leptoprosopic.scrupulum.todolistlight.database.dao.ToDoDao;
 import counterargue.leptoprosopic.scrupulum.todolistlight.database.entyties.ToDoItem;
 import io.reactivex.Flowable;
@@ -9,8 +11,9 @@ import io.reactivex.Flowable;
 public class DBRepository implements IRepository {
     ToDoDao mToDoDao;
 
-    public DBRepository(ToDoDao toDoDao) {
-        mToDoDao = toDoDao;
+    public DBRepository() {
+        ToDoDB db = App.getInstance().getDataBase();
+        mToDoDao = db.mToDoDao();
     }
 
     @Override

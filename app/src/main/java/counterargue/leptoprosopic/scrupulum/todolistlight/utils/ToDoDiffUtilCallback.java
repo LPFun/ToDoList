@@ -1,9 +1,7 @@
 package counterargue.leptoprosopic.scrupulum.todolistlight.utils;
 
 import android.support.v7.util.DiffUtil;
-
 import java.util.List;
-
 import counterargue.leptoprosopic.scrupulum.todolistlight.database.entyties.ToDoItem;
 
 public class ToDoDiffUtilCallback extends DiffUtil.Callback {
@@ -42,6 +40,6 @@ public class ToDoDiffUtilCallback extends DiffUtil.Callback {
         boolean isDescSame = oldToDoItem.description.equals(newToDoItem.description);
         boolean isStatusSame = oldToDoItem.status.equals(newToDoItem.status);
         boolean isPosSame = oldToDoItem.position == newToDoItem.position;
-        return (isCategorySame && isTitleSame && isDescSame && isStatusSame && isPosSame);
+        return (isPosSame && isCategorySame && isTitleSame && isDescSame && isStatusSame);
     }
 }

@@ -29,7 +29,7 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
     private View view;
     private PublishSubject<Integer> mClickSubject = PublishSubject.create();
     private PublishSubject<SparseArray<ToDoItem>> mUpdateSubject = PublishSubject.create();
-    private String TAG = this.getClass().getSimpleName().toString();
+    private String TAG = this.getClass().getSimpleName();
 
     public ToDoAdapter(Context context) {
         mContext = context;
@@ -44,7 +44,7 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
         view = layoutInflater.inflate(R.layout.list_item, viewGroup, false);
         viewHolder = new ToDoViewHolder(view);
         view.setOnClickListener(view -> {
-            int adapterPos = viewHolder.getAdapterPosition();
+            int adapterPos = viewHolder.getLayoutPosition();
             if (adapterPos != RecyclerView.NO_POSITION)
                 mClickSubject.onNext(viewHolder.getAdapterPosition());
         });
@@ -65,7 +65,7 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
     public void onItemDismiss(int pos) {
         mRecentlyDeletedItem = mListData.get(pos);
         SparseArray sparseArray = new SparseArray();
-        sparseArray.put(3, mListData.get(pos));
+        sparseArray.put(3, mRecentlyDeletedItem);
         mUpdateSubject.onNext(sparseArray);
         mRecentlyDeletedItemPosition = pos;
         mListData.remove(pos);
@@ -107,7 +107,6 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
             }
         }
         Log.i(TAG, "onItemMove: from " + fromPosition + " to " + toPosition);
-        mListData.get(toPosition).position = toPosition;
         notifyItemMoved(fromPosition, toPosition);
         return true;
     }
@@ -139,14 +138,7 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
     }
 
     public List<ToDoItem> getData() {
-        List<ToDoItem> items = new ArrayList<>();
-        for (int i = 0; i < mListData.size(); i++){
-            ToDoItem item = mListData.get(i);
-            item.position = i;
-            items.add(item);
-//            Log.i(TAG, "getData: " + item.position);
-        }
-        return items;
+        return mListData;
     }
 
     class ToDoViewHolder extends RecyclerView.ViewHolder {
@@ -163,6 +155,4 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
             item_txt.setText(item.title);
         }
     }
-
-
 }

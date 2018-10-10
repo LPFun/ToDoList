@@ -8,6 +8,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.util.Log;
 import android.view.View;
 
 import counterargue.leptoprosopic.scrupulum.todolistlight.R;
@@ -17,11 +18,10 @@ public class ItemTouchHelperCallback extends ItemTouchHelper.Callback {
     private ToDoAdapter mAdapter;
     private Drawable icon;
     private ColorDrawable background;
+    private final String TAG = "ItemTouchHelperCallback";
 
 
     public ItemTouchHelperCallback(ToDoAdapter adapter) {
-//        super(0, ItemTouchHelper.LEFT);
-
         mAdapter = adapter;
         icon = ContextCompat.getDrawable(mAdapter.getContext(), R.drawable.ic_delete);
         background = new ColorDrawable(Color.RED);
