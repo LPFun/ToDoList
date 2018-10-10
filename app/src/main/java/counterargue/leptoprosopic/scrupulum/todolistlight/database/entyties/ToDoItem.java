@@ -5,7 +5,6 @@ import android.arch.persistence.room.PrimaryKey;
 
 /**
  * Entity for Data Base
- *
  * @author Aleks Dark
  * @version 1.0
  */

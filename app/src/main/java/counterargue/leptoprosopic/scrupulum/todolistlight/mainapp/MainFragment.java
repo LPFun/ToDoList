@@ -98,9 +98,12 @@ public class MainFragment extends Fragment {
     @OnClick(R.id.toolbar_add_btn)
     public void onToolbarAddBtnClick() {
         if (mAdapter.getData().size() < 20) {
-            ToDoDialog doDialog = new ToDoDialog();
-            doDialog.setTargetFragment(MainFragment.this, REQUEST_CODE);
-            doDialog.show(getFragmentManager(), DIALOG_ADD);
+            DetailsFragment detailsFragment = new DetailsFragment();
+            detailsFragment.setTargetFragment(MainFragment.this, REQUEST_CODE);
+            goToFragment(detailsFragment);
+//            ToDoDialog doDialog = new ToDoDialog();
+//            doDialog.setTargetFragment(MainFragment.this, REQUEST_CODE);
+//            doDialog.show(getFragmentManager(), DIALOG_ADD);
         } else {
             Toast.makeText(getActivity(), "To mutch TODOS, delete one", Toast.LENGTH_SHORT).show();
         }
@@ -187,11 +190,10 @@ public class MainFragment extends Fragment {
      * @param pos - item position in list
      */
     private void handleOnRecyclerItemClick(int pos) {
-        ToDoDialog doDialog = ToDoDialog.newInstance(mToDoItems.get(pos));
-        doDialog.setTargetFragment(MainFragment.this, CHANGE_CODE);
+        DetailsFragment detailsFragment = DetailsFragment.newInstance(mToDoItems.get(pos));
+        detailsFragment.setTargetFragment(MainFragment.this, CHANGE_CODE);
         position = pos;
-        doDialog.show(getFragmentManager(), DIALOG_CHANGE);
-//        getFragmentManager().beginTransaction().replace(R.id.fragment_container, new DetailsFragment()).addToBackStack(null).commit();
+        getFragmentManager().beginTransaction().replace(R.id.fragment_container, detailsFragment).addToBackStack(null).commit();
     }
 
 
@@ -207,19 +209,14 @@ public class MainFragment extends Fragment {
             return;
         }
         Gson gson = new Gson();
+        String msg = data.getStringExtra(DetailsFragment.MSG_EXTRA);
+        ToDoItem toDoItem1 = gson.fromJson(msg, ToDoItem.class);
         if (requestCode == REQUEST_CODE) {
-            String msg = data.getStringExtra(ToDoDialog.MSG_EXTRA);
-            ToDoItem toDoItem1 = gson.fromJson(msg, ToDoItem.class);
             mAdapter.addItem(toDoItem1);
-//            changeDB(() -> mToDoDao.insert(toDoItem1));
             Log.i(TAG, "onActivityResult: " + msg);
         } else if (requestCode == CHANGE_CODE) {
-            String msg = data.getStringExtra(ToDoDialog.MSG_EXTRA);
-            ToDoItem toDoItem2 = gson.fromJson(msg, ToDoItem.class);
             Log.i(TAG, "onActivityResult: " + msg);
-            ;
-            changeDB(() -> mToDoDao.update(toDoItem2));
-            mAdapter.changeItem(position, toDoItem2);
+            mAdapter.changeItem(position, toDoItem1);
         }
     }
 
@@ -227,7 +224,6 @@ public class MainFragment extends Fragment {
     public void onPause() {
         super.onPause();
         updateListInDb();
-        dispose(mToDoDbDisposable);
     }
 
     @Override
@@ -238,6 +234,7 @@ public class MainFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        dispose(mToDoDbDisposable);
         dispose(mOnItemClick);
         dispose(mUpdateDB);
         dispose(mOnItemUpdate);
@@ -271,6 +268,10 @@ public class MainFragment extends Fragment {
         if (disposable != null && !disposable.isDisposed()) {
             disposable.dispose();
         }
+    }
+
+    private void goToFragment(Fragment fragment) {
+        getFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).addToBackStack(null).commit();
     }
 
     /**
