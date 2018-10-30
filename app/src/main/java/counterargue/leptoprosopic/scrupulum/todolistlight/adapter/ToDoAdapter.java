@@ -25,7 +25,6 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
     private Context mContext;
     private List<ToDoItem> mListData;
     private ToDoItem mRecentlyDeletedItem;
-    private int mRecentlyDeletedItemPosition;
     private View view;
     private PublishSubject<Integer> mClickSubject = PublishSubject.create();
     private PublishSubject<SparseArray<ToDoItem>> mUpdateSubject = PublishSubject.create();
@@ -67,24 +66,14 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
         SparseArray sparseArray = new SparseArray();
         sparseArray.put(3, mRecentlyDeletedItem);
         mUpdateSubject.onNext(sparseArray);
-        mRecentlyDeletedItemPosition = pos;
+    }
+
+    public void deleteItem(int pos) {
         mListData.remove(pos);
-        notifyItemRemoved(pos);
-        showUndoSnackbar();
-    }
-
-    private void showUndoSnackbar() {
-        Snackbar snackbar = Snackbar.make(view, "Undo?", Snackbar.LENGTH_SHORT);
-        snackbar.setAction("Yes", view -> undoDelete());
-        snackbar.show();
-    }
-
-    private void undoDelete() {
-        mListData.add(mRecentlyDeletedItemPosition, mRecentlyDeletedItem);
         SparseArray sparseArray = new SparseArray();
-        sparseArray.put(2, mRecentlyDeletedItem);
+        sparseArray.put(4, mRecentlyDeletedItem);
         mUpdateSubject.onNext(sparseArray);
-        notifyItemInserted(mRecentlyDeletedItemPosition);
+        notifyItemRemoved(pos);
     }
 
     public Observable<Integer> getClickEvent(){

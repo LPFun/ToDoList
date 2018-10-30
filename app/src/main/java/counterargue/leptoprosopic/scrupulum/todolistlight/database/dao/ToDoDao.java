@@ -20,7 +20,7 @@ public interface ToDoDao {
     @Query("SELECT * FROM todoitems WHERE id = :id")
     ToDoItem getById(long id);
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(ToDoItem toDoItems);
 
     @Update

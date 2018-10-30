@@ -27,13 +27,10 @@ import java.util.List;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
-import counterargue.leptoprosopic.scrupulum.todolistlight.App;
 import counterargue.leptoprosopic.scrupulum.todolistlight.R;
 import counterargue.leptoprosopic.scrupulum.todolistlight.adapter.ItemTouchHelperCallback;
 import counterargue.leptoprosopic.scrupulum.todolistlight.adapter.ToDoAdapter;
 import counterargue.leptoprosopic.scrupulum.todolistlight.adapter.ToDoItemDecorator;
-import counterargue.leptoprosopic.scrupulum.todolistlight.database.ToDoDB;
-import counterargue.leptoprosopic.scrupulum.todolistlight.database.dao.ToDoDao;
 import counterargue.leptoprosopic.scrupulum.todolistlight.database.entyties.ToDoItem;
 import counterargue.leptoprosopic.scrupulum.todolistlight.database.repository.DBRepository;
 import counterargue.leptoprosopic.scrupulum.todolistlight.database.repository.IRepository;
@@ -57,8 +54,9 @@ public class MainFragment extends Fragment {
      * Adapter for recyclerview
      */
     private ToDoAdapter mAdapter;
-    private final static int REQUEST_CODE = 0;
+    private final static int ADD_CODE = 0;
     private final static int CHANGE_CODE = 1;
+    private final static int DELETE_CODE = 2;
     private final String DIALOG_ADD = "DIALOG_ADD";
     private final String DIALOG_CHANGE = "DIALOG_CHANGE";
     private int position;
@@ -74,6 +72,7 @@ public class MainFragment extends Fragment {
         super.onCreate(savedInstanceState);
 //        getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         initDB();
+        initAdapter();
     }
 
     @Nullable
@@ -83,9 +82,6 @@ public class MainFragment extends Fragment {
         ButterKnife.bind(this, view);
 
         initView();
-
-        initAdapter();
-
         initRecycler();
 
         return view;
@@ -105,7 +101,7 @@ public class MainFragment extends Fragment {
     public void onToolbarAddBtnClick() {
         if (mAdapter.getData().size() < 20) {
             DetailsFragment detailsFragment = new DetailsFragment();
-            detailsFragment.setTargetFragment(MainFragment.this, REQUEST_CODE);
+            detailsFragment.setTargetFragment(MainFragment.this, ADD_CODE);
             goToFragment(detailsFragment);
         } else {
             Toast.makeText(getActivity(), "To mutch TODOS, delete one", Toast.LENGTH_SHORT).show();
@@ -143,7 +139,6 @@ public class MainFragment extends Fragment {
         setupRecyclerOnItemClickListener();
 
         mToDoDbDisposable = mToDoDao.getAll()
-                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(toDoItems -> {
                             mToDoItems = new ArrayList<>();
@@ -166,6 +161,7 @@ public class MainFragment extends Fragment {
                             }
                         },
                         throwable -> {
+                            Log.e(TAG, "initAdapter: ", throwable);
                         }
                 );
     }
@@ -192,22 +188,38 @@ public class MainFragment extends Fragment {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(item -> {
                     switch (item.keyAt(0)) {
-                        case 1:
+                        case 1: {
                             changeDB(() -> mToDoDao.update(item.get(1)));
                             break;
-                        case 2:
+                        }
+
+                        case 2: {
                             changeDB(() -> mToDoDao.insert(item.get(2)));
                             break;
-                        case 3:
-                            changeDB(() -> mToDoDao.delete(item.get(3)));
+                        }
+
+                        case 3: {
+                            showDeleteDialog(item.get(3));
                             break;
+                        }
+
+                        case 4: {
+                            changeDB(() -> mToDoDao.delete(item.get(4)));
+                            break;
+                        }
+
                     }
                 });
     }
 
+    private void showDeleteDialog(ToDoItem item) {
+        Fragment deletDialog = DeleteDialogFragment.newInstance(item);
+        deletDialog.setTargetFragment(MainFragment.this, DELETE_CODE);
+        ((DeleteDialogFragment) deletDialog).show(getFragmentManager(), "DELETE_DIALOG");
+    }
+
     /**
      * Method that handles user's on item click
-     *
      * @param pos - item position in list
      */
     private void handleOnRecyclerItemClick(int pos) {
@@ -226,33 +238,43 @@ public class MainFragment extends Fragment {
      */
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode != Activity.RESULT_OK) {
-            return;
-        }
         Gson gson = new Gson();
         String msg = data.getStringExtra(DetailsFragment.MSG_EXTRA);
         ToDoItem toDoItem = gson.fromJson(msg, ToDoItem.class);
-        if (requestCode == REQUEST_CODE) {
-            mAdapter.addItem(toDoItem);
-            Log.i(TAG, "onActivityResult: " + msg);
-        } else if (requestCode == CHANGE_CODE) {
-            Log.i(TAG, "onActivityResult: " + msg);
-            mAdapter.changeItem(position, toDoItem);
+        if (resultCode == Activity.RESULT_OK) {
+            if (requestCode == ADD_CODE) {
+                mAdapter.addItem(toDoItem);
+                Log.i(TAG, "onActivityResult: " + msg);
+            } else if (requestCode == CHANGE_CODE) {
+                Log.i(TAG, "onActivityResult: " + msg);
+                mAdapter.changeItem(position, toDoItem);
+            } else if (requestCode == DELETE_CODE) {
+                Log.i(TAG, "onActivityResult: " + msg);
+                mAdapter.deleteItem(toDoItem.position);
+            }
+
+        } else if (resultCode == Activity.RESULT_CANCELED) {
+            if (requestCode == DELETE_CODE) {
+                mAdapter.notifyItemChanged(toDoItem.position);
+            }
         }
+
+
     }
 
     @Override
     public void onPause() {
         super.onPause();
         Log.i(TAG, "onPause: ");
+        mToDoItems = mAdapter.getData();
+        updateListInDb(mToDoItems);
     }
 
     @Override
     public void onStop() {
         super.onStop();
         Log.i(TAG, "onStop: ");
-        mToDoItems = mAdapter.getData();
-        updateListInDb(mToDoItems);
+
     }
 
     @Override
@@ -312,7 +334,6 @@ public class MainFragment extends Fragment {
 
     /**
      * DRY method
-     *
      * @param fragment
      */
     private void goToFragment(Fragment fragment) {

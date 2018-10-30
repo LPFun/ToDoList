@@ -101,7 +101,7 @@ public class DetailsFragment extends Fragment {
         mToDoItem.title = title;
         mToDoItem.description = mDescEditTxt.getText().toString();
         mToDoItem.category = mCategoryEditTxt.getText().toString();
-        mToDoItem.status = null;
+        mToDoItem.status = "";
 
         String str_new_todo = mGson.toJson(mToDoItem);
 
