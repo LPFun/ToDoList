@@ -9,6 +9,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AlertDialog;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -71,6 +72,15 @@ public class DeleteDialogFragment extends DialogFragment {
         getDialog().setCancelable(false);
         getDialog().requestWindowFeature(STYLE_NO_TITLE);
         getDialog().setCanceledOnTouchOutside(false);
+        //
+        getDialog().setOnKeyListener((dialog, keyCode, event) ->
+        {
+            if (keyCode == KeyEvent.KEYCODE_BACK) {
+                sendResult(Activity.RESULT_CANCELED);
+                dismiss();
+            }
+            return false;
+        });
         return super.onCreateView(inflater, container, savedInstanceState);
     }
 
@@ -92,12 +102,15 @@ public class DeleteDialogFragment extends DialogFragment {
 
     private DialogInterface.OnClickListener onCancelClickListener = (dialogInterface, i) -> {
         sendResult(Activity.RESULT_CANCELED);
-        dismissDialog();
+        dismiss();
     };
 
-    private void dismissDialog() {
-        this.dismiss();
+
+    @Override
+    public void dismiss() {
+        super.dismiss();
     }
+
 
     @Override
     public void onDestroyView() {
