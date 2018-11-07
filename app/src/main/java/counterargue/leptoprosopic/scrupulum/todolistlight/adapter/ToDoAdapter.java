@@ -2,21 +2,22 @@ package counterargue.leptoprosopic.scrupulum.todolistlight.adapter;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
-import android.support.design.widget.Snackbar;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import counterargue.leptoprosopic.scrupulum.todolistlight.R;
 import counterargue.leptoprosopic.scrupulum.todolistlight.database.entyties.ToDoItem;
+import counterargue.leptoprosopic.scrupulum.todolistlight.view.TodoItemView;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 
@@ -131,8 +132,8 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
     }
 
     class ToDoViewHolder extends RecyclerView.ViewHolder {
-        @BindView(R.id.item_txt)
-        TextView item_txt;
+        @BindView(R.id.todo_item)
+        TodoItemView item_txt;
 
         public ToDoViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -141,7 +142,8 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
 
         void bind(ToDoItem item) {
             Log.i(TAG, "bind: " + item.position);
-            item_txt.setText(item.title);
+            item_txt.setTitle(item.title);
+            item_txt.setCategory(item.category);
         }
     }
 }
