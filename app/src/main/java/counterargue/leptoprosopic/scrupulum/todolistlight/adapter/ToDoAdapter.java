@@ -25,7 +25,7 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
 
     private Context mContext;
     private List<ToDoItem> mListData;
-    private ToDoItem mRecentlyDeletedItem;
+    private int mRecentlyDeletedItemPos;
     private View view;
     private PublishSubject<Integer> mClickSubject = PublishSubject.create();
     private PublishSubject<SparseArray<ToDoItem>> mUpdateSubject = PublishSubject.create();
@@ -63,18 +63,19 @@ public class ToDoAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
 
     @Override
     public void onItemDismiss(int pos) {
-        mRecentlyDeletedItem = mListData.get(pos);
+        mRecentlyDeletedItemPos = pos;
         SparseArray sparseArray = new SparseArray();
-        sparseArray.put(3, mRecentlyDeletedItem);
+        sparseArray.put(3, mListData.get(pos));
         mUpdateSubject.onNext(sparseArray);
     }
 
-    public void deleteItem(int pos) {
-        mListData.remove(pos);
+    public void deleteItem(ToDoItem item) {
+        mListData.remove(mRecentlyDeletedItemPos);
         SparseArray sparseArray = new SparseArray();
-        sparseArray.put(4, mRecentlyDeletedItem);
+        sparseArray.put(4, item);
         mUpdateSubject.onNext(sparseArray);
-        notifyItemRemoved(pos);
+        Log.i(TAG, "deleteItem: " + mRecentlyDeletedItemPos);
+        notifyItemRemoved(mRecentlyDeletedItemPos);
     }
 
     public Observable<Integer> getClickEvent(){

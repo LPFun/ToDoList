@@ -251,7 +251,7 @@ public class MainFragment extends Fragment {
                 mAdapter.changeItem(position, toDoItem);
             } else if (requestCode == DELETE_CODE) {
                 Log.i(TAG, "onActivityResult: " + msg);
-                mAdapter.deleteItem(toDoItem.position);
+                mAdapter.deleteItem(toDoItem);
             }
 
         } else if (resultCode == Activity.RESULT_CANCELED) {
